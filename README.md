@@ -6,7 +6,7 @@
 
 ## Para rodar a aplicação
 ```
-mvn clean clean spring-boot:run
+mvn clean install spring-boot:run
 ```
 
 E em seguida acessar a seguinte página pelo navegador:
