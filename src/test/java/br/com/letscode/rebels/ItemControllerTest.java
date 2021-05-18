@@ -4,7 +4,6 @@ import br.com.letscode.rebels.item.domain.dto.AddItemDTO;
 import br.com.letscode.rebels.item.domain.dto.ItemUpdateDTO;
 import br.com.letscode.rebels.item.repository.ItemRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

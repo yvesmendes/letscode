@@ -26,7 +26,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class PersonServiceImpl implements PersonService{
+public class PersonServiceImpl implements PersonService {
 
     public static final int MINIMAL_QUANTITY = 0;
     public static final int STATUS_CODE_BAD_REQUEST = 400;
@@ -43,8 +43,8 @@ public class PersonServiceImpl implements PersonService{
     private PersonItemRepository personItemRepository;
 
     @PostConstruct
-    public void postConstruct(){
-        modelMapper.addConverter(new Converter<PersonItem,InventoryItemDTO>() {
+    public void postConstruct() {
+        modelMapper.addConverter(new Converter<PersonItem, InventoryItemDTO>() {
             @Override
             public InventoryItemDTO convert(MappingContext<PersonItem, InventoryItemDTO> mappingContext) {
                 InventoryItemDTO personDisplayDTO = new InventoryItemDTO();
@@ -74,7 +74,7 @@ public class PersonServiceImpl implements PersonService{
 
         Set<PersonItem> personItems = new HashSet<>();
         dto.getInventory().stream().forEach(r -> {
-            PersonItem personItem =  getPersonItem(r, person);
+            PersonItem personItem = getPersonItem(r, person);
             personItemRepository.save(personItem);
             personItems.add(personItem);
         });
@@ -89,7 +89,6 @@ public class PersonServiceImpl implements PersonService{
     private PersonItem getPersonItem(AddInventoryItemDTO r, Person person) {
 
         PersonItemID personItemID = new PersonItemID();
-
         personItemID.setItem(getItem(r.getId()).getId());
         personItemID.setPersonId(person.getId());
 
@@ -113,18 +112,18 @@ public class PersonServiceImpl implements PersonService{
     public void alter(LocalizationWithIDDTO dto) {
         Person person = this.getPerson(dto.getId());
 
-        if(!person.isRebel()){
-            throw new GenericException(MessageEnum.INVALID_UPDATE_LOCALIZATION.getMessage(),STATUS_CODE_BAD_REQUEST);
+        if (!person.isRebel()) {
+            throw new GenericException(MessageEnum.INVALID_UPDATE_LOCALIZATION.getMessage(), STATUS_CODE_BAD_REQUEST);
         }
 
-        person.updateLocalization(dto.getLatitude(),dto.getLongitude(),dto.getGalaxyName());
+        person.updateLocalization(dto.getLatitude(), dto.getLongitude(), dto.getGalaxyName());
         this.personRepository.save(person);
     }
 
     @Override
     public List<PersonDisplayDTO> findAll() {
         return Utils.converEntityToDTO(PersonDisplayDTO.class,
-                this.personRepository.findAllByRebelIsTrueOrderByNameAsc(),modelMapper);
+                this.personRepository.findAllByRebelIsTrueOrderByNameAsc(), modelMapper);
     }
 
     @Override
@@ -137,37 +136,54 @@ public class PersonServiceImpl implements PersonService{
     @Override
     public void exchange(ExchangeDTO dto) {
 
-        this.validadeUniqueIds(dto);
-
         Person fromRebel = this.getPerson(dto.getFromPersonId());
         Person toRebel = this.getPerson(dto.getToPersonId());
 
-        if(!fromRebel.isRebel() || !toRebel.isRebel()){
-            throw new GenericException(MessageEnum.INVALID_EXCHANGE_PERSON_NOT_REBEL.getMessage(),STATUS_CODE_BAD_REQUEST);
-        }
+        this.validateExchange(dto, fromRebel, toRebel);
 
-        this.validateTotal(dto);
+        Map<Long, Integer> listItemsTo = this.iteratorAndPrepareExchange(toRebel, dto.getToItems());
+        Map<Long, Integer> listItemsFrom = this.iteratorAndPrepareExchange(fromRebel, dto.getFromItems());
 
-        Map<Long,Integer> listItemsTo = new HashMap<>();
-        Iterator<ItemExchangeDTO> itemExchangeDTOIterator = dto.getFromItems().iterator();
-
-        while(itemExchangeDTOIterator.hasNext()){
-            iteratorAndPrepareExchange(fromRebel, itemExchangeDTOIterator,listItemsTo);
-        }
-
-        Iterator<ItemExchangeDTO> itemToExchangeDTOIterator = dto.getToItems().iterator();
-        Map<Long,Integer> listItemsFrom = new HashMap<>();
-
-        while(itemToExchangeDTOIterator.hasNext()){
-            iteratorAndPrepareExchange(toRebel, itemToExchangeDTOIterator, listItemsFrom);
-        }
-
-        prepareInventoryPostExchange(toRebel, listItemsTo);
-        prepareInventoryPostExchange(fromRebel, listItemsFrom);
+        this.prepareInventoryPostExchange(toRebel, listItemsFrom);
+        this.prepareInventoryPostExchange(fromRebel, listItemsTo);
 
         personItemRepository.flush();
         personRepository.save(toRebel);
         personRepository.save(fromRebel);
+    }
+
+    private void validateExchange(ExchangeDTO dto, Person fromRebel, Person toRebel) {
+        this.validateUniqueIds(dto);
+        this.validateDifferentPersons(fromRebel, toRebel);
+        this.validateTotal(dto);
+    }
+
+    private void validateUniqueIds(ExchangeDTO dto) {
+        if (dto.getFromPersonId().equals(dto.getToPersonId())) {
+            throw new GenericException(MessageEnum.SAME_ID_TO_EXCHANGE.getMessage(), STATUS_CODE_BAD_REQUEST);
+        }
+    }
+
+    private void validateDifferentPersons(Person fromRebel, Person toRebel) {
+        if (!fromRebel.isRebel() || !toRebel.isRebel()) {
+            throw new GenericException(MessageEnum.INVALID_EXCHANGE_PERSON_NOT_REBEL.getMessage(), STATUS_CODE_BAD_REQUEST);
+        }
+    }
+
+    private void validateTotal(ExchangeDTO dto) {
+        int totalFromItems = dto.getFromItems().stream().map(r -> {
+            Item item = this.getItem(r.getItemId());
+            return item.getPoints() * r.getQuantity();
+        }).collect(Collectors.summingInt(Integer::intValue));
+
+        int totalToItems = dto.getToItems().stream().map(r -> {
+            Item item = this.getItem(r.getItemId());
+            return item.getPoints() * r.getQuantity();
+        }).collect(Collectors.summingInt(Integer::intValue));
+
+        if (totalFromItems != totalToItems) {
+            throw new GenericException(MessageEnum.TOTAL_DIVERGENCE.getMessage(), STATUS_CODE_BAD_REQUEST);
+        }
     }
 
     @Override
@@ -188,55 +204,55 @@ public class PersonServiceImpl implements PersonService{
     @Override
     public List<PersonDisplayDTO> findAllTraitors() {
         return Utils.converEntityToDTO(PersonDisplayDTO.class,
-                this.personRepository.findAllByRebelIsFalseOrderByNameAsc(),modelMapper);
-    }
-
-    private void validadeUniqueIds(ExchangeDTO dto) {
-        if(dto.getFromPersonId().equals(dto.getToPersonId())){
-            throw new GenericException(MessageEnum.SAME_ID_TO_EXCHANGE.getMessage(),STATUS_CODE_BAD_REQUEST);
-        }
+                this.personRepository.findAllByRebelIsFalseOrderByNameAsc(), modelMapper);
     }
 
     private void prepareInventoryPostExchange(Person toRebel, Map<Long, Integer> listItemsTo) {
-        for(Long key : listItemsTo.keySet() ){
-            PersonItem personItem = toRebel.getInventory().stream().filter(r -> r.getId().equals(key)).findFirst().orElse(PersonItem.builder().personItemID(new PersonItemID(toRebel.getId(),key)).quantity(MINIMAL_QUANTITY).build());
+        for (Long key : listItemsTo.keySet()) {
+            PersonItem personItem = toRebel
+                    .getInventory()
+                    .stream()
+                    .filter(r -> r.getId().equals(key))
+                    .findFirst()
+                    .orElse(PersonItem
+                            .builder()
+                            .personItemID(new PersonItemID(toRebel.getId(), key))
+                            .quantity(MINIMAL_QUANTITY)
+                            .build());
             personItem.setQuantity(personItem.getQuantity() + listItemsTo.get(key));
             personItemRepository.save(personItem);
             toRebel.getInventory().add(personItem);
         }
     }
 
-    private void validateTotal(ExchangeDTO dto) {
-        int totalFromItems = dto.getFromItems().stream().map(r -> {
-            Item item = this.getItem(r.getItemId());
-            return item.getPoints() * r.getQuantity();
-        }).collect(Collectors.summingInt(Integer::intValue));
+    private Map<Long, Integer> iteratorAndPrepareExchange(Person rebel, Set<ItemExchangeDTO> items) {
 
-        int totalToItems = dto.getToItems().stream().map(r -> {
-            Item item = this.getItem(r.getItemId());
-            return item.getPoints() * r.getQuantity();
-        }).collect(Collectors.summingInt(Integer::intValue));
+        Iterator<ItemExchangeDTO> itemExchangeDTOIterator = items.iterator();
+        Map<Long, Integer> listItems = new HashMap<>();
 
-        if(totalFromItems != totalToItems){
-            throw new GenericException(MessageEnum.TOTAL_DIVERGENCE.getMessage(), STATUS_CODE_BAD_REQUEST);
+        while (itemExchangeDTOIterator.hasNext()) {
+            ItemExchangeDTO itemExchangeDTO = itemExchangeDTOIterator.next();
+
+            PersonItem personItem = rebel
+                    .getInventory()
+                    .stream()
+                    .filter(r -> r.getId().getItem().equals(itemExchangeDTO.getItemId())).findFirst()
+                    .orElseThrow(() -> new GenericException(MessageEnum.INVALID_EXCHANGE.getMessage()));
+
+            this.validateQuantity(itemExchangeDTO, personItem);
+
+            listItems.put(itemExchangeDTO.getItemId(), itemExchangeDTO.getQuantity());
+
+            personItem.setQuantity(personItem.getQuantity() - itemExchangeDTO.getQuantity());
         }
+
+        return listItems;
     }
 
-    private void iteratorAndPrepareExchange(Person fromRebel, Iterator<ItemExchangeDTO> itemExchangeDTOIterator, Map<Long, Integer> listItems) {
-        ItemExchangeDTO itemExchangeDTO = itemExchangeDTOIterator.next();
-        PersonItem personItem = fromRebel
-                .getInventory()
-                .stream()
-                .filter(r -> r.getId().getItem().equals(itemExchangeDTO.getItemId())).findFirst()
-                .orElseThrow(() -> new GenericException(MessageEnum.INVALID_EXCHANGE.getMessage()));
-
+    private void validateQuantity(ItemExchangeDTO itemExchangeDTO, PersonItem personItem) {
         if (itemExchangeDTO.getQuantity() > personItem.getQuantity()) {
-            throw new GenericException(MessageEnum.INVALID_EXCHANGE_QUANTITY.getMessage(),STATUS_CODE_BAD_REQUEST);
+            throw new GenericException(MessageEnum.INVALID_EXCHANGE_QUANTITY.getMessage(), STATUS_CODE_BAD_REQUEST);
         }
-
-        listItems.put(itemExchangeDTO.getItemId(),itemExchangeDTO.getQuantity());
-
-        personItem.setQuantity(personItem.getQuantity() - itemExchangeDTO.getQuantity());
     }
 
     private Person getPersonRebel(String id) {

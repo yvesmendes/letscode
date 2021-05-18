@@ -1,7 +1,6 @@
 package br.com.letscode.rebels.person.domain.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -11,6 +10,9 @@ import java.util.Set;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ExchangeDTO {
 
     @NotBlank(message = "O ID do rebelde é obrigatório")

@@ -1,9 +1,7 @@
 package br.com.letscode.rebels.person.domain.dto;
 
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
@@ -11,6 +9,9 @@ import javax.validation.constraints.NotBlank;
 @Getter
 @Setter
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class LocalizationDTO {
 
     private double latitude;

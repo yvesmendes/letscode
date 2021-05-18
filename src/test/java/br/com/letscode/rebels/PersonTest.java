@@ -18,16 +18,21 @@ class PersonTest extends BaseTest {
 	public static final String GALAXY_NAME_ORION = "ORION";
 	public static final double NEW_LATITUDE = 1.0;
 	public static final double NEW_LONGITUDE = 1.0;
+	public static final String MSG_NEW_PERSONS_TEST = "Novas pessoas cadastradas devem ser rebeldes";
+	public static final String MSG_PERSON_NAME_HAS_THE_SAME = "Nome do rebelde deve ser igual ao cadastrado";
+	public static final String MSG_GALAXY_NAME_HAS_THE_SAME = "Nome da deve ser igual ao nome cadastrado";
+	public static final String MSG_AGE_HAS_THE_SAME = "Nome da deve ser o nome cadastrado em upper case";
+	public static final String MSG_PERSON_BE_A_TRAITOR_AFTER_THREE_TIMES = "A pessoa deve ser uma traidora após chamar o método betray 3 vezes";
 
 	@Test
 	@DisplayName("Simple create person")
 	public void givenAPerson_whenBuilderAPerson_thenRebelIsTrue() {
 		Person person = createPerson();
 
-		assertTrue(person.isRebel(), "Novas pessoas cadastradas devem ser rebeldes");
-		assertEquals(NAME,person.getName(),"Nome do rebelde deve ser igual ao cadastrado");
-		assertEquals(GALAXY_NAME, person.getCurrentLocalization().getGalaxyName(), "Nome da deve ser igual ao nome cadastrado");
-		assertEquals(AGE, person.getAge(), "Nome da deve ser o nome cadastrado em upper case");
+		assertTrue(person.isRebel(), MSG_NEW_PERSONS_TEST);
+		assertEquals(NAME,person.getName(), MSG_PERSON_NAME_HAS_THE_SAME);
+		assertEquals(GALAXY_NAME, person.getCurrentLocalization().getGalaxyName(), MSG_GALAXY_NAME_HAS_THE_SAME);
+		assertEquals(AGE, person.getAge(), MSG_AGE_HAS_THE_SAME);
 	}
 
 	@Test
@@ -35,13 +40,13 @@ class PersonTest extends BaseTest {
 	public void givenAPerson_whenCallBetrayThretimes_thenRebelIsFalse() {
 		Person person = createPerson();
 
-		assertTrue(person.isRebel(), "Novas pessoas cadastradas devem ser rebeldes");
+		assertTrue(person.isRebel(), MSG_NEW_PERSONS_TEST);
 
 		person.betray();
 		person.betray();
 		person.betray();
 
-		assertTrue(!person.isRebel(), "A pessoa deve ser uma triadora após chamar o método betray 3 vezes");
+		assertTrue(!person.isRebel(), MSG_PERSON_BE_A_TRAITOR_AFTER_THREE_TIMES);
 	}
 
 	@Test

@@ -2,8 +2,7 @@ package br.com.letscode.rebels.person.domain.dto;
 
 import br.com.letscode.rebels.item.domain.dto.AddInventoryItemDTO;
 import br.com.letscode.rebels.person.domain.entity.GenderEnum;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
@@ -13,6 +12,9 @@ import java.util.Set;
 
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AddPersonDTO {
 
     @NotBlank(message = "O nome é obrigatório")
